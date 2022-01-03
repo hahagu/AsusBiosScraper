@@ -71,6 +71,9 @@ namespace AsusScraper
                 Console.Write("\rCurrently Scanning " + testURI);
                 currentInt++;
             }
+
+            Console.WriteLine("\nPress any key to exit...");
+            Console.ReadKey();
         }
 
         static string? searchMobo()
