@@ -23,7 +23,12 @@ namespace AsusScraper
             int endInt = 0;
 
             string? hash = searchMobo();
-            if (hash == null) return;
+            if (hash == null)
+            {
+                Console.WriteLine("\nPress any key to exit...");
+                Console.ReadKey();
+                return;
+            }
 
             string urlString = getDownloadLink(hash);
             Console.WriteLine();
