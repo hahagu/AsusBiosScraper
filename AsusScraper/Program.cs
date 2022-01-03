@@ -50,13 +50,9 @@ namespace AsusScraper
                         Console.WriteLine();
 
                         Console.CursorTop -= 2;
-                        if (response.StatusCode == HttpStatusCode.NotFound)
-                        {
-                            Console.WriteLine(testURI + " - Good                    ");
-                        }
                         if (response.StatusCode == HttpStatusCode.OK)
                         {
-                            Console.WriteLine(testURI + " - Good                    ");
+                            Console.WriteLine(testURI + " - Good                        ");
                         }
                     }
                 }
@@ -69,7 +65,10 @@ namespace AsusScraper
                 currentInt++;
             }
 
-            Console.WriteLine("\nPress any key to exit...");
+            Console.WriteLine();
+            Console.WriteLine();
+            Console.WriteLine("Finished Processing.");
+            Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
 
