@@ -23,7 +23,9 @@ namespace AsusScraper
             int endInt = 0;
 
             string? hash = searchMobo();
-            string? urlString = getDownloadLink(hash);
+            if (hash == null) return;
+
+            string urlString = getDownloadLink(hash);
             Console.WriteLine();
 
             Console.Write("Start Number: ");
@@ -61,7 +63,7 @@ namespace AsusScraper
                         }
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     //Console.Write("\rException at " + currentInt.ToString() + " - " + ex.Message);
                 }
@@ -86,14 +88,11 @@ namespace AsusScraper
                 Console.Write("Motherboard Name: ");
                 string? moboName = Console.ReadLine();
 
-                Product selectedMobo = productArray.First(product => product.PDName.Contains(moboName));
-                if (selectedMobo == null)
+                try
                 {
-                    Console.WriteLine("Product was not found. Please search again.");
-                    return null;
-                } else
-                {
+                    Product selectedMobo = productArray.First(product => product.PDName.ToUpper().Contains(moboName.ToUpper()));
                     string? selectedMoboHash = selectedMobo.PDHashedId;
+
                     if (selectedMoboHash == null)
                     {
                         Console.WriteLine("Product was found, but hash was not detected.");
@@ -105,10 +104,15 @@ namespace AsusScraper
                         return selectedMoboHash;
                     }
                 }
+                catch(Exception)
+                {
+                    Console.WriteLine("Product was not found. Please search again.");
+                    return null;
+                }
             }
         }
 
-        static string? getDownloadLink(string hashedID)
+        static string getDownloadLink(string hashedID)
         {
             UriBuilder uriBuilder = new UriBuilder(moboBaseUrl + hashedID);
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uriBuilder.Uri);
@@ -118,8 +122,8 @@ namespace AsusScraper
             {
                 string responseText = reader.ReadToEnd();
                 dynamic jsonArray = JObject.Parse(responseText);
-                string? downloadLink = jsonArray.Result.Obj[0].Files[0].DownloadUrl.Global;
-                string? filteredLink = Regex.Replace(downloadLink, "[0-9]{4}.ZIP", "");
+                string downloadLink = jsonArray.Result.Obj[0].Files[0].DownloadUrl.Global;
+                string filteredLink = Regex.Replace(downloadLink, "[0-9]{4}.ZIP", "");
                 Console.WriteLine("Configured for Link: " + filteredLink + "0000.ZIP");
                 return filteredLink;
             }
