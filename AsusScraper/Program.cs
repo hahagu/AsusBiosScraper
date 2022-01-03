@@ -1,4 +1,7 @@
 ﻿#pragma warning disable SYSLIB0014 // Type or member is obsolete
+#pragma warning disable CS8604 // Possible null reference argument.
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net;
@@ -20,15 +23,15 @@ namespace AsusScraper
         static void Main()
         {
             bool retrySearch = true;
-            string? hash = null;
-            string? urlString = null;
+            string hash;
+            List<string> urlStrings = new();
 
             while (retrySearch)
             {
                 hash = searchMobo();
-                urlString = getDownloadLink(hash);
+                urlStrings = getDownloadLink(hash);
                 Console.Write("Is the selection correct? (y/N): ");
-                retrySearch = (Console.ReadLine().ToLower() != "y");
+                retrySearch = Console.ReadLine().ToLower() != "y";
                 Console.WriteLine();
             }
 
@@ -41,17 +44,19 @@ namespace AsusScraper
             Console.WriteLine("Configured Range: " + startInt.ToString("D4") + " ~ " + endInt.ToString("D4"));
             Console.WriteLine();
 
-            int currentInt = startInt;
-
-            while (currentInt < endInt)
+            for (int i = 0; i < urlStrings.Count(); i++)
             {
-                string testURI = urlString + currentInt.ToString("D4") + ".ZIP";
-                try
+                int currentInt = startInt;
+                string urlString = urlStrings[i];
+                while (currentInt < endInt + 1)
                 {
-                    if (!string.IsNullOrEmpty(testURI))
-                    {
-                        UriBuilder uriBuilder = new UriBuilder(testURI);
+                    string testURI = urlString + currentInt.ToString("D4") + ".ZIP";
+                    Console.Write("\rScanning link " + i + ", number " + currentInt.ToString("D4") + "     ");
 
+                    try
+                    {
+
+                        UriBuilder uriBuilder = new UriBuilder(testURI);
                         HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uriBuilder.Uri);
                         HttpWebResponse response = (HttpWebResponse)request.GetResponse();
 
@@ -64,14 +69,45 @@ namespace AsusScraper
                             Console.WriteLine(testURI + " - Good                        ");
                         }
                     }
+                    catch (Exception)
+                    {
+                        //Console.Write("\rException at " + currentInt.ToString() + " - " + ex.Message);
+                    }
+                    currentInt++;
                 }
-                catch (Exception)
-                {
-                    //Console.Write("\rException at " + currentInt.ToString() + " - " + ex.Message);
-                }
+            }
 
-                Console.Write("\rCurrently Scanning " + testURI);
-                currentInt++;
+            for (int i = 0; i < urlStrings.Count(); i++)
+            {
+                int currentInt = startInt;
+                string urlString = urlStrings[i];
+                while (currentInt < endInt + 1)
+                {
+                    string testURI = urlString + currentInt.ToString("D4") + ".zip";
+                    Console.Write("\rScanning link " + i + ", number " + currentInt.ToString("D4") + "     ");
+
+                    try
+                    {
+
+                        UriBuilder uriBuilder = new UriBuilder(testURI);
+                        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uriBuilder.Uri);
+                        HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+
+                        Console.WriteLine();
+                        Console.WriteLine();
+
+                        Console.CursorTop -= 2;
+                        if (response.StatusCode == HttpStatusCode.OK)
+                        {
+                            Console.WriteLine(testURI + " - Good                        ");
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        //Console.Write("\rException at " + currentInt.ToString() + " - " + ex.Message);
+                    }
+                    currentInt++;
+                }
             }
 
             Console.WriteLine();
@@ -125,7 +161,7 @@ namespace AsusScraper
             }
         }
 
-        static string getDownloadLink(string hashedID)
+        static List<string> getDownloadLink(string hashedID)
         {
             UriBuilder uriBuilder = new UriBuilder(moboBaseUrl + hashedID);
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uriBuilder.Uri);
@@ -135,11 +171,23 @@ namespace AsusScraper
             {
                 string responseText = reader.ReadToEnd();
                 dynamic jsonArray = JObject.Parse(responseText);
-                string downloadLink = jsonArray.Result.Obj[0].Files[0].DownloadUrl.Global;
-                string filteredLink = Regex.Replace(downloadLink, "(?i)[0-9]{4}.ZIP", "");
-                Console.WriteLine("Configured for Link: " + filteredLink + "0000.ZIP");
+                dynamic fileArray = jsonArray.Result.Obj[0].Files;
+                List<string> returnArray = new List<string>();
+
+                Console.WriteLine("Configured for Links: ");
+                foreach (dynamic fileObj in fileArray)
+                {
+                    string fileLink = fileObj.DownloadUrl.Global;
+                    string filteredLink = Regex.Replace(fileLink, "(?i)[0-9]{4}.ZIP", "");
+                    if (!returnArray.Contains(filteredLink))
+                    {
+                        returnArray.Add(filteredLink);
+                        Console.WriteLine("\t" + filteredLink + "0000.ZIP");
+                    }
+                }
+
                 Console.WriteLine();
-                return filteredLink;
+                return returnArray;
             }
         }
 
