@@ -19,20 +19,12 @@ namespace AsusScraper
         private static string moboBaseUrl = "https://www.asus.com/support/api/product.asmx/GetPDBIOS?website=korea&pdhashedid=";
         static void Main()
         {
-            int startInt = 0;
-            int endInt = 0;
-
-            string? hash = searchMobo();
-            if (hash == null)
-            {
-                Console.WriteLine("\nPress any key to exit...");
-                Console.ReadKey();
-                return;
-            }
-
+            string hash = searchMobo();
             string urlString = getDownloadLink(hash);
             Console.WriteLine();
 
+            int startInt = 0;
+            int endInt = 0;
             Console.Write("Start Number: ");
             startInt = Convert.ToInt32(Console.ReadLine());
             Console.Write("End Number: ");
@@ -81,7 +73,7 @@ namespace AsusScraper
             Console.ReadKey();
         }
 
-        static string? searchMobo()
+        static string searchMobo()
         {
             UriBuilder uriBuilder = new UriBuilder(moboListUrl);
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uriBuilder.Uri);
@@ -93,29 +85,32 @@ namespace AsusScraper
                 dynamic jsonArray = JObject.Parse(responseText);
                 List<Product> productArray = jsonArray.Result.Product.ToObject<List<Product>>();
 
-                Console.Write("Motherboard Name: ");
-                string? moboName = Console.ReadLine();
-
-                try
+                while(true)
                 {
-                    Product selectedMobo = productArray.First(product => product.PDName.ToUpper().Contains(moboName.ToUpper()));
-                    string? selectedMoboHash = selectedMobo.PDHashedId;
+                    Console.Write("Motherboard Name: ");
+                    string? moboName = Console.ReadLine();
 
-                    if (selectedMoboHash == null)
+                    try
                     {
-                        Console.WriteLine("Product was found, but hash was not detected.");
-                        return null;
+                        Product selectedMobo = productArray.First(product => product.PDName.ToUpper().Contains(moboName.ToUpper()));
+                        string? selectedMoboHash = selectedMobo.PDHashedId;
+
+                        if (selectedMoboHash == null)
+                        {
+                            Console.WriteLine("Product was found, but hash was not detected.");
+                            continue;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Product Found: " + selectedMobo.PDName);
+                            return selectedMoboHash;
+                        }
                     }
-                    else
+                    catch (Exception)
                     {
-                        Console.WriteLine("Product Found: " + selectedMobo.PDName);
-                        return selectedMoboHash;
+                        Console.WriteLine("Product was not found. Please search again.");
+                        continue;
                     }
-                }
-                catch(Exception)
-                {
-                    Console.WriteLine("Product was not found. Please search again.");
-                    return null;
                 }
             }
         }
