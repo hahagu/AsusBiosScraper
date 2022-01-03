@@ -17,13 +17,20 @@ namespace AsusScraper
     {
         private static string moboListUrl = "https://www.asus.com/support/api/product.asmx/GetPDLevel?website=global&type=2&typeid=1156,0&productflag=1";
         private static string moboBaseUrl = "https://www.asus.com/support/api/product.asmx/GetPDBIOS?website=korea&pdhashedid=";
-        private static double query_tolerance = 0.9;
-        private static double string_tolerance = 0.6;
         static void Main()
         {
-            string hash = searchMobo();
-            string urlString = getDownloadLink(hash);
-            Console.WriteLine();
+            bool retrySearch = true;
+            string? hash = null;
+            string? urlString = null;
+
+            while (retrySearch)
+            {
+                hash = searchMobo();
+                urlString = getDownloadLink(hash);
+                Console.Write("Is the selection correct? (y/N): ");
+                retrySearch = (Console.ReadLine().ToLower() != "y");
+                Console.WriteLine();
+            }
 
             int startInt = 0;
             int endInt = 0;
@@ -93,12 +100,13 @@ namespace AsusScraper
 
                     try
                     {
-                        Product selectedMobo = productArray.First(product => compareString(product.PDName, moboName) > query_tolerance);
+                        Product selectedMobo = productArray.OrderByDescending(product => compareString(product.PDName, moboName)).First();
                         string? selectedMoboHash = selectedMobo.PDHashedId;
 
                         if (selectedMoboHash == null)
                         {
-                            Console.WriteLine("Product was found, but hash was not detected.\n");
+                            Console.WriteLine("Product was found, but hash was not detected.");
+                            Console.WriteLine();
                             continue;
                         }
                         else
@@ -110,6 +118,7 @@ namespace AsusScraper
                     catch (Exception)
                     {
                         Console.WriteLine("Product was not found. Please search again.");
+                        Console.WriteLine();
                         continue;
                     }
                 }
@@ -129,19 +138,21 @@ namespace AsusScraper
                 string downloadLink = jsonArray.Result.Obj[0].Files[0].DownloadUrl.Global;
                 string filteredLink = Regex.Replace(downloadLink, "(?i)[0-9]{4}.ZIP", "");
                 Console.WriteLine("Configured for Link: " + filteredLink + "0000.ZIP");
+                Console.WriteLine();
                 return filteredLink;
             }
         }
 
         static double compareString(string source, string target)
         {
-            List<string> source_exploded = source.Replace('-', ' ').Replace('_', ' ').Split(' ').ToList();
-            List<string> target_exploded = target.Replace('-', ' ').Replace('_', ' ').Split(' ').ToList();
+            List<string> source_exploded = source.Replace("-", "").Replace("_", "").Split(' ').ToList();
+            List<string> target_exploded = target.Replace("-", "").Replace("_", "").Split(' ').ToList();
 
             double score = 0.0;
             int source_length = source_exploded.Count();
             int target_length = target_exploded.Count();
             int matching_words = 0;
+            int partial_matching_words = 0;
 
             foreach (string source_string in source_exploded)
             {
@@ -150,11 +161,14 @@ namespace AsusScraper
                     if (source_string.ToUpper() == target_string.ToUpper())
                     {
                         matching_words++;
+                    } else if (source_string.ToUpper().Contains(target_string.ToUpper()))
+                    {
+                        partial_matching_words++;
                     }
                 }
             }
 
-            score = (double)matching_words / (double)target_length;
+            score = ((double)matching_words + (double)partial_matching_words) / (double)target_length;
             return score;
         }
     }
