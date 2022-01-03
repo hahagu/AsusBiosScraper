@@ -97,7 +97,7 @@ namespace AsusScraper
 
                         if (selectedMoboHash == null)
                         {
-                            Console.WriteLine("Product was found, but hash was not detected.");
+                            Console.WriteLine("Product was found, but hash was not detected.\n");
                             continue;
                         }
                         else
