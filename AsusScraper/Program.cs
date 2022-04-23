@@ -43,15 +43,16 @@ namespace AsusScraper
             endInt = Convert.ToInt32(Console.ReadLine());
             Console.WriteLine("Configured Range: " + startInt.ToString("D4") + " ~ " + endInt.ToString("D4"));
             Console.WriteLine();
-
-            for (int i = 0; i < urlStrings.Count(); i++)
+            
+            Parallel.For(0, urlStrings.Count(), (i, state) =>
             {
                 int currentInt = startInt;
                 string urlString = urlStrings[i];
                 while (currentInt < endInt + 1)
                 {
                     string testURI = urlString + currentInt.ToString("D4") + ".ZIP";
-                    Console.Write("\rScanning link " + i + ", number " + currentInt.ToString("D4") + "     ");
+                    string testURI_lw = urlString + currentInt.ToString("D4") + ".zip";
+                    Console.Write("\rScanning link number " + currentInt.ToString("D4") + "     ");
 
                     try
                     {
@@ -62,8 +63,8 @@ namespace AsusScraper
 
                         Console.WriteLine();
                         Console.WriteLine();
-
                         Console.CursorTop -= 2;
+
                         if (response.StatusCode == HttpStatusCode.OK)
                         {
                             Console.WriteLine(testURI + " - Good                        ");
@@ -73,42 +74,30 @@ namespace AsusScraper
                     {
                         //Console.Write("\rException at " + currentInt.ToString() + " - " + ex.Message);
                     }
-                    currentInt++;
-                }
-            }
-
-            for (int i = 0; i < urlStrings.Count(); i++)
-            {
-                int currentInt = startInt;
-                string urlString = urlStrings[i];
-                while (currentInt < endInt + 1)
-                {
-                    string testURI = urlString + currentInt.ToString("D4") + ".zip";
-                    Console.Write("\rScanning link " + i + ", number " + currentInt.ToString("D4") + "     ");
 
                     try
                     {
-
-                        UriBuilder uriBuilder = new UriBuilder(testURI);
-                        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uriBuilder.Uri);
-                        HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                        UriBuilder uriBuilder_lw = new UriBuilder(testURI_lw);
+                        HttpWebRequest request_lw = (HttpWebRequest)WebRequest.Create(uriBuilder_lw.Uri);
+                        HttpWebResponse response_lw = (HttpWebResponse)request_lw.GetResponse();
 
                         Console.WriteLine();
                         Console.WriteLine();
-
                         Console.CursorTop -= 2;
-                        if (response.StatusCode == HttpStatusCode.OK)
+
+                        if (response_lw.StatusCode == HttpStatusCode.OK)
                         {
-                            Console.WriteLine(testURI + " - Good                        ");
+                            Console.WriteLine(testURI_lw + " - Good                        ");
                         }
                     }
                     catch (Exception)
                     {
                         //Console.Write("\rException at " + currentInt.ToString() + " - " + ex.Message);
                     }
+
                     currentInt++;
                 }
-            }
+            });
 
             Console.WriteLine();
             Console.WriteLine();
