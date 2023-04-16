@@ -20,7 +20,7 @@ namespace AsusScraper
     {
         private static string moboListUrl = "https://www.asus.com/support/api/product.asmx/GetPDLevel?website=global&type=2&typeid=1156,0&productflag=1";
         private static string moboBaseUrl = "https://www.asus.com/support/api/product.asmx/GetPDBIOS?website=korea&pdhashedid=";
-        static void Main()
+        static async Task Main()
         {
             bool retrySearch = true;
             string hash;
@@ -28,8 +28,8 @@ namespace AsusScraper
 
             while (retrySearch)
             {
-                hash = searchMobo();
-                urlStrings = getDownloadLink(hash);
+                hash = SearchMotherboard().Result;
+                urlStrings = GetDownloadLink(hash);
                 Console.Write("Is the selection correct? (y/N): ");
                 retrySearch = Console.ReadLine().ToLower() != "y";
                 Console.WriteLine();
@@ -43,21 +43,28 @@ namespace AsusScraper
             endInt = Convert.ToInt32(Console.ReadLine());
             Console.WriteLine("Configured Range: " + startInt.ToString("D4") + " ~ " + endInt.ToString("D4"));
             Console.WriteLine();
-            
-            Parallel.For(0, urlStrings.Count(), (i, state) =>
+
+            LogModel model = new()
+            {
+                Sender = "MainThread",
+                Message = $"Configured Range: {startInt:0000} ~ {endInt:0000}",
+            };
+
+            await LogController.WriteLine(model);
+
+            async void Scanner(int i, ParallelLoopState state)
             {
                 int currentInt = startInt;
                 string urlString = urlStrings[i];
                 while (currentInt < endInt + 1)
                 {
-                    string testURI = urlString + currentInt.ToString("D4") + ".ZIP";
-                    string testURI_lw = urlString + currentInt.ToString("D4") + ".zip";
+                    string testUri = urlString + currentInt.ToString("D4") + ".ZIP";
+                    string testUriLw = urlString + currentInt.ToString("D4") + ".zip";
                     Console.Write("\rScanning link number " + currentInt.ToString("D4") + "     ");
 
                     try
                     {
-
-                        UriBuilder uriBuilder = new UriBuilder(testURI);
+                        UriBuilder uriBuilder = new UriBuilder(testUri);
                         HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uriBuilder.Uri);
                         HttpWebResponse response = (HttpWebResponse)request.GetResponse();
 
@@ -67,17 +74,23 @@ namespace AsusScraper
 
                         if (response.StatusCode == HttpStatusCode.OK)
                         {
-                            Console.WriteLine(testURI + " - Good                        ");
+                            Console.WriteLine(testUri + " - Good                        ");
+
+                            LogModel model = new() { Sender = $"ScannerThread_{currentInt}", Message = $"{testUri} - Good" };
+
+                            await LogController.WriteLine(model);
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        //Console.Write("\rException at " + currentInt.ToString() + " - " + ex.Message);
+                        LogModel model = new() { Sender = $"ScannerThread_{currentInt}", Message = ex.Message };
+
+                        await LogController.WriteLine(model);
                     }
 
                     try
                     {
-                        UriBuilder uriBuilder_lw = new UriBuilder(testURI_lw);
+                        UriBuilder uriBuilder_lw = new UriBuilder(testUriLw);
                         HttpWebRequest request_lw = (HttpWebRequest)WebRequest.Create(uriBuilder_lw.Uri);
                         HttpWebResponse response_lw = (HttpWebResponse)request_lw.GetResponse();
 
@@ -87,17 +100,25 @@ namespace AsusScraper
 
                         if (response_lw.StatusCode == HttpStatusCode.OK)
                         {
-                            Console.WriteLine(testURI_lw + " - Good                        ");
+                            Console.WriteLine(testUriLw + " - Good                        ");
+
+                            LogModel model = new() { Sender = $"ScannerThread_{currentInt}_Lowercase", Message = $"{testUri} - Good" };
+
+                            await LogController.WriteLine(model);
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        //Console.Write("\rException at " + currentInt.ToString() + " - " + ex.Message);
+                        LogModel model = new() { Sender = $"ScannerThread_{currentInt}_Lowercase", Message = ex.Message };
+
+                        await LogController.WriteLine(model);
                     }
 
                     currentInt++;
                 }
-            });
+            }
+
+            Parallel.For(0, urlStrings.Count(), Scanner);
 
             Console.WriteLine();
             Console.WriteLine();
@@ -106,7 +127,7 @@ namespace AsusScraper
             Console.ReadKey();
         }
 
-        static string searchMobo()
+        static async Task<string> SearchMotherboard()
         {
             UriBuilder uriBuilder = new UriBuilder(moboListUrl);
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uriBuilder.Uri);
@@ -125,7 +146,7 @@ namespace AsusScraper
 
                     try
                     {
-                        Product selectedMobo = productArray.OrderByDescending(product => compareString(product.PDName, moboName)).First();
+                        Product selectedMobo = productArray.OrderByDescending(product => CompareString(product.PDName, moboName)).First();
                         string? selectedMoboHash = selectedMobo.PDHashedId;
 
                         if (selectedMoboHash == null)
@@ -137,10 +158,19 @@ namespace AsusScraper
                         else
                         {
                             Console.WriteLine("Product Found: " + selectedMobo.PDName);
+
+                            LogModel model = new()
+                            {
+                                Sender = "SearchMotherboard",
+                                Message = $"Product Found: {selectedMobo.PDName}, {selectedMobo.PDId}",
+                            };
+
+                            await LogController.WriteLine(model);
+
                             return selectedMoboHash;
                         }
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
                         Console.WriteLine("Product was not found. Please search again.");
                         Console.WriteLine();
@@ -150,7 +180,7 @@ namespace AsusScraper
             }
         }
 
-        static List<string> getDownloadLink(string hashedID)
+        static List<string> GetDownloadLink(string hashedID)
         {
             UriBuilder uriBuilder = new UriBuilder(moboBaseUrl + hashedID);
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uriBuilder.Uri);
@@ -180,7 +210,7 @@ namespace AsusScraper
             }
         }
 
-        static double compareString(string source, string target)
+        static double CompareString(string source, string target)
         {
             List<string> source_exploded = source.Replace("-", "").Replace("_", "").Split(' ').ToList();
             List<string> target_exploded = target.Replace("-", "").Replace("_", "").Split(' ').ToList();
