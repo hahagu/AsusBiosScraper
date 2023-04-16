@@ -197,6 +197,13 @@ namespace AsusScraper
                 foreach (dynamic fileObj in fileArray)
                 {
                     string fileLink = fileObj.DownloadUrl.Global;
+
+                    int qIndex = fileLink.IndexOf('?');
+                    if (qIndex != -1)
+                    {
+                        fileLink = fileLink.Substring(0, qIndex);
+                    }
+
                     string filteredLink = Regex.Replace(fileLink, "(?i)[0-9]{4}.ZIP", "");
                     if (!returnArray.Contains(filteredLink))
                     {
