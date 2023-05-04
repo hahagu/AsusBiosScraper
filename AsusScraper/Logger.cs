@@ -5,23 +5,14 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace AsusScraper;
 
 public static class LogController
 {
-    public static string AssemblyDirectory
-    {
-        get
-        {
-            string codeBase = Assembly.GetExecutingAssembly().CodeBase;
-            UriBuilder uri = new UriBuilder(codeBase);
-            string path = Uri.UnescapeDataString(uri.Path);
-            return Path.GetDirectoryName(path);
-        }
-    }
-
-    private static readonly string LogBasePath = Path.Combine(AssemblyDirectory, "Logs") ?? @".\Logs";
+    private static readonly string BasePath = Directory.GetCurrentDirectory();
+    private static readonly string LogBasePath = Path.Combine(BasePath, "Logs");
     private static readonly string LogPath = Path.Combine(LogBasePath, "current.log");
 
     public static bool LogVerbose = true;
@@ -30,10 +21,9 @@ public static class LogController
 
     static LogController()
     {
-        Init();
     }
 
-    private static void Init()
+    public static void Init()
     {
         _logRunning = false;
 

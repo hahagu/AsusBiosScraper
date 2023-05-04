@@ -22,6 +22,19 @@ namespace AsusScraper
         private static string moboBaseUrl = "https://www.asus.com/support/api/product.asmx/GetPDBIOS?website=korea&pdhashedid=";
         static async Task Main()
         {
+            Console.WriteLine("Initializing Logger");
+            try
+            {
+                LogController.Init();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Could not initialize logger.");
+                Console.WriteLine(ex.ToString());
+            }
+
+            Console.WriteLine();
+
             bool retrySearch = true;
             string hash;
             List<string> urlStrings = new();
@@ -125,6 +138,7 @@ namespace AsusScraper
             Console.WriteLine("Finished Processing.");
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
+            LogController.Flush();
         }
 
         static async Task<string> SearchMotherboard()
